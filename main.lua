@@ -12,19 +12,26 @@
     - process those orders and move all units when "submit orders" is clicked
 
     GITHUB TEST
-    
+
 
 ]]
 
 --=============== Libraries =============
+require 'lepixel.units'
+
 local push = require 'lib/push'
 
 --================Assets ================
 local titleFont = love.graphics.newFont('fonts/AustraliaCustom.ttf', 36)
 
+--Units
+
+local unitTestImg = love.graphics.newImage('graphics/testunit.png')
+
 
 --Background
 local backgroundimg = love.graphics.newImage("graphics/background1.png")
+
 --Board Tiles
 local numforest = 5
 local forest1 = love.graphics.newImage('graphics/forest1.png')
@@ -44,22 +51,27 @@ local plainoptions = {plains1, plains2, plains3, forest4}
 
     --Visual
 WINDOW_WIDTH = 1408
-WINDOW_HEIGHT = 792
+WINDOW_HEIGHT = 1408
 
 VIRTUAL_WIDTH = 1280
-VIRTUAL_HEIGHT = 720
+VIRTUAL_HEIGHT = 1280
 
-BoardTileSize = 58
+BoardTileSize = 70
+TileScaleX = 1.3
+TileScaleY = 1.3
 
-    --Gameplay
 BoardHeight = 10
 BoardWidth = 10
 
+local xMargin = (VIRTUAL_WIDTH - (BoardTileSize * BoardWidth)) / 4
+local yMargin = (VIRTUAL_HEIGHT - (BoardTileSize * BoardHeight)) / 8
 
+    --Gameplay
 
 --========= Data Structures ===============
 
 --Generate Board
+--Board is data structure that keeps track of all game information
 local Board = {}
 
 --Generate empty board grid
@@ -68,11 +80,14 @@ for x = 1, BoardWidth do
     Board[x] = {}
 
     for y =1, BoardHeight do
-        Board[x][y] = ''
+        Board[x][y] = {}
+        Board[x][y].terrain = ''
+        Board[x][y].unit = ''
     end
 end
 
 --Test 10x10 map
+--Map is a simple data structure to store terrain layout, will be mapped to the board
 --Would be cool to auto generate this
 mapheight = 10
 mapwidth = 10
@@ -135,6 +150,25 @@ end
 function love.update(dt)
 
 
+    local testunit = {}
+    testunit.isalive = 'yes'
+    testunit.name=''
+    testunit.player=''
+    testunit.type=''
+    testunit.class=''
+    testunit.lastpos=''
+    testunit.nextpos=''
+    testunit.icon = unitTestImg
+
+    Board[1][1].unit = testunit
+    Board[2][4].unit = testunit
+    Board[1][1].unit = testunit
+    Board[5][5].unit = testunit
+    Board[3][2].unit = testunit
+
+
+
+
 end
 
 
@@ -146,6 +180,8 @@ function love.draw()
     drawBackground()
 
     drawBoard()
+
+    drawUnits()
     
 
 
@@ -158,8 +194,14 @@ end
 
 function drawBackground()
     --Draws old-timey map background
-
-        love.graphics.draw(backgroundimg)
+    --Get background image size and window size, scale background accordingly
+        local backwidth = backgroundimg:getWidth()
+        local backheight = backgroundimg:getHeight()
+        local width, height = love.window.getMode( )
+        local winwidth, winheight = width, height
+        local sx = winwidth / backwidth
+        local sy = winheight / backheight
+        love.graphics.draw(backgroundimg,1, 1, 0, sx, sy)
         love.graphics.setColor(0,0,0)
         love.graphics.print("Le Pixel Corporel")
         love.graphics.setColor(1,1,1)
@@ -173,13 +215,10 @@ function drawBoard()
     --Load map graphics info (generated in love.load)
     local currentmap = mapgraphics
 
-    local xMargin = (VIRTUAL_WIDTH - (BoardTileSize * BoardWidth)) / 2
-    local yMargin = (VIRTUAL_HEIGHT - (BoardTileSize * BoardHeight)) / 2
-
     for x = 1, mapwidth do
         for y = 1, mapheight do
 
-         love.graphics.draw(currentmap[x][y], (xMargin + ((x - 1)* BoardTileSize)), (yMargin + ((y - 1)* BoardTileSize)), 0, 1.1, 1.1) 
+         love.graphics.draw(currentmap[x][y], (xMargin + ((x - 1)* BoardTileSize)), (yMargin + ((y - 1)* BoardTileSize)), 0, TileScaleX, TileScaleY) 
 
         end
     end
@@ -202,6 +241,16 @@ function randomPlains()
     for i =1, numplains do
         if seed == i then
             return plainoptions[i]
+        end
+    end
+end
+
+function drawUnits()
+    for x = 1, BoardWidth do
+        for y = 1, BoardHeight do
+            if Board[x][y].unit ~= '' then
+                love.graphics.draw(Board[x][y].unit.icon, (xMargin + ((x - 1)* BoardTileSize)) + (BoardTileSize/10), (yMargin + ((y - 1)* BoardTileSize) + (BoardTileSize/4)), 0, .8, .8) 
+            end
         end
     end
 end
