@@ -8,6 +8,10 @@
     - data structure for units?
     - get units drawn on the screen
     - move a unit
+    -make sure only one unit can be selected: should "unitselected" be global?
+
+
+
     - assign all units orders
     - process those orders and move all units when "submit orders" is clicked
 
@@ -17,9 +21,11 @@
 ]]
 
 --=============== Libraries =============
-require 'lepixel.units'
+local unitsLib = require 'lib/units'
 
 local push = require 'lib/push'
+
+print("HI DOM")
 
 --================Assets ================
 local titleFont = love.graphics.newFont('fonts/AustraliaCustom.ttf', 36)
@@ -72,7 +78,7 @@ local yMargin = (VIRTUAL_HEIGHT - (BoardTileSize * BoardHeight)) / 8
 
 --Generate Board
 --Board is data structure that keeps track of all game information
-local Board = {}
+Board = {}
 
 --Generate empty board grid
 
@@ -82,7 +88,11 @@ for x = 1, BoardWidth do
     for y =1, BoardHeight do
         Board[x][y] = {}
         Board[x][y].terrain = ''
-        Board[x][y].unit = ''
+        Board[x][y].unit = nil
+        Board[x][y].clicked = false
+        --Gives starting x and y pixel coordinates for this square
+        Board[x][y].startx = xMargin + ((x - 1)* BoardTileSize)
+        Board[x][y].starty = yMargin + ((y - 1)* BoardTileSize)
     end
 end
 
@@ -106,9 +116,67 @@ map = {
 }
 
 
+--Units
+function tablelength(T)
+    local count = 0
+    for _ in pairs(T) do count = count + 1 end
+    return count
+end
+
+--Units testing
+testunit1 = {}
+testunit1.isalive = 'yes'
+testunit1.iselected = false
+testunit1.name=''
+testunit1.player=''
+testunit1.type=''
+testunit1.class=''
+testunit1.lastposX= 5
+testunit1.lastposY= 5
+testunit1.nextposX= ''
+testunit1.nextposY= ''
+testunit1.icon = unitTestImg
+
+testunit2 = {}
+testunit2.isalive = 'yes'
+testunit2.iselected = false
+testunit2.name=''
+testunit2.player=''
+testunit2.type=''
+testunit2.class=''
+testunit2.lastposX= 3
+testunit2.lastposY= 3
+testunit2.nextposX= ''
+testunit2.nextposY= ''
+testunit2.icon = unitTestImg
+
+testunit3 = {}
+testunit3.isalive = 'yes'
+testunit3.iselected = false
+testunit3.name=''
+testunit3.player=''
+testunit3.type=''
+testunit3.class=''
+testunit3.lastposX= 7
+testunit3.lastposY= 7
+testunit3.nextposX= ''
+testunit3.nextposY= ''
+testunit3.icon = unitTestImg
+
+unitlist = {testunit1, testunit2, testunit3}
+
+unitlistsize = tablelength(unitlist)
+
+Board[5][5].unit = testunit1
+Board[3][3].unit = testunit2
+Board[7][7].unit = testunit3
+
+
 --========== Gameplay Loop ===============
 
 function love.load()
+
+    --Graphics setup
     love.graphics.setDefaultFilter('nearest','nearest')
     love.graphics.setFont(titleFont)
 
@@ -135,6 +203,8 @@ function love.load()
         end
     end
 
+
+    
 end
 
 --easy escape for testing
@@ -142,36 +212,20 @@ function love.keypressed(key)
     if key == 'escape' then
         love.event.quit()
     end
-
 end
+
+
 
 
 
 function love.update(dt)
 
-
-    local testunit = {}
-    testunit.isalive = 'yes'
-    testunit.name=''
-    testunit.player=''
-    testunit.type=''
-    testunit.class=''
-    testunit.lastpos=''
-    testunit.nextpos=''
-    testunit.icon = unitTestImg
-
-    Board[1][1].unit = testunit
-    Board[2][4].unit = testunit
-    Board[1][1].unit = testunit
-    Board[5][5].unit = testunit
-    Board[3][2].unit = testunit
-
+    --unitsLib.createClickmap()
+    
 
 
 
 end
-
-
 
 
 function love.draw()
@@ -182,13 +236,56 @@ function love.draw()
     drawBoard()
 
     drawUnits()
+
+    drawMoveOptions()
     
-
-
-
-
-
     
+end
+
+
+
+--=========== Functions =============================
+
+-- Create the "Click Map"
+function love.mousepressed(clickx, clicky, button)
+    --Click a unit, highlight show its available moves, click unit again to deselect
+    --Listen for clicks on all board squares
+    for x = 1, BoardWidth do
+        for y=1, BoardHeight do
+            if button == 1 then
+                if clickx >= Board[x][y].startx and clickx <= Board[x][y].startx + BoardTileSize and clicky >= Board[x][y].starty and clicky <= Board[x][y].starty + BoardTileSize then
+                        --if left mouse button pressed and the mouse is within the size of the tile 
+                        --Check to see if it has a unit
+                        if Board[x][y].unit ~= nil then
+                            --If board square does have a unit
+                            if Board[x][y].clicked == false then
+                                --Select that unit, acknowlege board click
+                                Board[x][y].clicked = true
+                                Board[x][y].unit.iselected = true
+                            else 
+                                --Deselect that unit, acknowlege second board click
+                                Board[x][y].clicked = false
+                                Board[x][y].unit.iselected = false
+                            end
+
+                        else
+                            for i=1,unitlistsize do
+                                if unitlist[i].iselected == true and inMoveRange(unitlist[i], x, y) == true then
+                                    --if a unit has been selected, and clicked square is in units movement range
+                                    Board[x][y].unit = unitlist[i]
+                                    Board[unitlist[i].lastposX][unitlist[i].lastposY].unit = nil
+                                    Board[unitlist[i].lastposX][unitlist[i].lastposY].clicked = false
+                                    unitlist[i].lastposX = x
+                                    unitlist[i].lastposY = y
+                                    unitlist[i].iselected = false
+                                    
+                                end
+                            end
+                        end
+                end
+            end
+        end
+    end
 end
 
 
@@ -248,9 +345,55 @@ end
 function drawUnits()
     for x = 1, BoardWidth do
         for y = 1, BoardHeight do
-            if Board[x][y].unit ~= '' then
+            if Board[x][y].unit ~= nil then
                 love.graphics.draw(Board[x][y].unit.icon, (xMargin + ((x - 1)* BoardTileSize)) + (BoardTileSize/10), (yMargin + ((y - 1)* BoardTileSize) + (BoardTileSize/4)), 0, .8, .8) 
             end
         end
+    end
+end
+
+function drawMoveOptions()
+    --Check to see if square has been clicked to draw movement options
+        for x = 1, BoardWidth do
+            for y=1, BoardHeight do
+                if Board[x][y].clicked == true then
+                    --Highlight unit as yellow
+                    love.graphics.setColor(0.98,0.854, 0.368, 0.5)
+                    love.graphics.rectangle('fill',Board[x][y].startx, Board[x][y].starty, BoardTileSize, BoardTileSize)
+                    --Set potential moves as green
+                    love.graphics.setColor(0,1,0, 0.5)
+                    --Move Up
+                    if y > 1 then
+                        love.graphics.rectangle('fill',Board[x][y - 1].startx, Board[x][y - 1].starty, BoardTileSize, BoardTileSize)
+                    end
+                    --Move Down
+                    if y < BoardHeight then
+                        love.graphics.rectangle('fill',Board[x][y + 1].startx, Board[x][y + 1].starty, BoardTileSize, BoardTileSize)
+                    end
+                    --Move Left
+                    if x > 1 then
+                        love.graphics.rectangle('fill',Board[x - 1][y].startx, Board[x - 1][y].starty, BoardTileSize, BoardTileSize)
+                    end
+                    --Move Right
+                    if x < BoardWidth then
+                        love.graphics.rectangle('fill',Board[x + 1][y].startx, Board[x + 1][y].starty, BoardTileSize, BoardTileSize)
+                    end
+
+                    love.graphics.setColor(1, 1, 1)
+                end
+
+            end
+        end
+end
+
+function inMoveRange(unit, x, y)
+--Given a unit and a coordinate, see if that coordinate is in the units movemnt range
+    if x ~= unit.lastposX + 1 and x ~= unit.lastposX -1 and x ~= unit.lastposX then
+        return false
+    elseif y ~= unit.lastposY + 1 and y ~= unit.lastposY -1 and y~= unit.lastposY then
+        return false
+    elseif x == unit.lastposX and y == unit.lastposY then
+        return false
+    else return true
     end
 end
