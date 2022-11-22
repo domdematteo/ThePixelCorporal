@@ -72,4 +72,85 @@ onclick = function love.mousepressed(clickx, clicky, button)
 end
 ]]
 
---return { = }
+
+--=========== Calculating Moves ==============
+-- For each unit that has move orders
+-- See if another unit is ordered to move there
+--If an enemy unit has chosen to move there, simulate combat
+--If no enemy, let unit move there
+--[[
+function calculateMoves()
+
+    for i =1, unitlistsize do
+        if unitlist[i].nextposX ~= nil then
+            --for all units, if that movement has a nextpos (ie, it was given a move order)
+            for j=1, unitlistsize do
+                if unitList[i].nextposX == unitList[j].nextposX and unitList[i].nextposY == unitList[j].nextposY then
+                    winner = unitCombat(unitlist[i], unitlist[j])
+                    winner.posX = winner.nextposX
+                    winner.posY = winner.nextposY
+                    winner.nextposX = nil
+                    winner.nextposY = nil
+                
+                else --they are moving to an empty square
+                unitlist[i].posX = unitlist[i].nextposX
+                unitlist[i].posY = unitlist[i].nextposY
+                unitlist[i].nextposX = nil
+                unitlist[i].nextposY = nil
+                end
+            end
+        end
+    end
+
+end
+
+
+
+
+--========= Calculating Combat ===========
+function unitCombat(unit1, unit2)
+    --Returns winner of combat, removes losers
+    --Infantry vs infantry
+    if unit1.type == 'infantry' and unit2.type == 'infantry' then
+        --identical units removed
+        if unit1.class == unit2.class then
+            removeCasualties(unit1)
+            removeCasualties(unit2)
+            return nil
+        elseif unit1.class == 3 and unit2.class == 1 then
+            removeCasualties(unit2)
+            return unit1
+        elseif unit1.class == 1 and unit2.class == 3 then
+            removeCasualties(unit1)
+            return unit2    
+        elseif unit1.class < unit2.class then
+            removeCasualties(unit2)
+            return unit1
+        else 
+            removeCasualties(unit1)
+            return unit2
+        end
+    end
+end
+
+
+
+--======= Remove Casualties =========
+function removeCasualties(unit)
+    --Remove unit from board
+    Board[unit.posX][unit.posY] = nil
+    --Remove unit from unit list
+    for i=1, unitlistsize do
+        if unitlist[i] == unit then
+            unitlist[i].isalive = false
+            unitlist[i].posX = nil
+            unitlist[i].posY = nil
+            unitlist[i].nextposX = nil
+            unitlist[i].nextposY = nil
+            table.remove (unitlist, i)
+        end
+    end
+
+end
+
+]]
