@@ -5,6 +5,7 @@
 
 --TO Dos:
     - ******* need to fix self unit blocking. Units should be able to move to a space a firendly unit is moving out of
+    --*** I would really like to paramertize all of the moving, so all moves are stored in a single table
 
     GITHUB TEST
 
@@ -164,10 +165,7 @@ testunit1.posX= 5
 testunit1.posY= 5
 testunit1.pixstartX = xMargin + ((testunit1.posX - 1)* BoardTileSize)
 testunit1.pixstartY = yMargin + ((testunit1.posY - 1)* BoardTileSize)
-testunit1.nextposX= nil
-testunit1.nextposY= nil
-testunit1.finalposX= nil
-testunit1.finalposY= nil
+testunit1.moves = {{0,0}, {0,0}}
 testunit1.icon = unitTestImg
 testunit1.arrow = randdomArrow()
 
@@ -183,10 +181,7 @@ testunit2.posX= 3
 testunit2.posY= 3
 testunit2.pixstartX = xMargin + ((testunit2.posX - 1)* BoardTileSize)
 testunit2.pixstartY = yMargin + ((testunit2.posY - 1)* BoardTileSize)
-testunit2.nextposX=  nil
-testunit2.nextposY= nil
-testunit2.finalposX= nil
-testunit2.finalposY= nil
+testunit2.moves = {{0,0}, {0,0}}
 testunit2.icon = unitTestImg
 testunit2.arrow = randdomArrow()
 
@@ -202,10 +197,7 @@ testunit3.posX= 7
 testunit3.posY= 7
 testunit3.pixstartX = xMargin + ((testunit3.posX - 1)* BoardTileSize)
 testunit3.pixstartY = yMargin + ((testunit3.posY - 1)* BoardTileSize)
-testunit3.nextposX=  nil
-testunit3.nextposY=  nil
-testunit3.finalposX= nil
-testunit3.finalposY= nil
+testunit3.moves = {{0,0}, {0,0}}
 testunit3.icon = unitTestImgP2
 testunit3.arrow = randdomArrow()
 
@@ -221,8 +213,7 @@ bluegeneral.posX= 4
 bluegeneral.posY= 4
 bluegeneral.pixstartX = xMargin + ((testunit1.posX - 1)* BoardTileSize)
 bluegeneral.pixstartY = yMargin + ((testunit1.posY - 1)* BoardTileSize)
-bluegeneral.nextposX= nil
-bluegeneral.nextposY= nil
+bluegeneral.moves = {{0,0}, {0,0}}
 bluegeneral.icon = blueGeneralImg
 bluegeneral.arrow = randdomArrow()
 
@@ -238,8 +229,7 @@ redgeneral.posX= 8
 redgeneral.posY= 8
 redgeneral.pixstartX = xMargin + ((testunit1.posX - 1)* BoardTileSize)
 redgeneral.pixstartY = yMargin + ((testunit1.posY - 1)* BoardTileSize)
-redgeneral.nextposX= nil
-redgeneral.nextposY= nil
+redgeneral.moves = {{0,0}, {0,0}}
 redgeneral.icon = redGeneralImg
 redgeneral.arrow = randdomArrow()
 
@@ -289,6 +279,20 @@ function love.load()
     for i = 1, unitlistsize do
         Board[unitlist[i].posX][unitlist[i].posY].unit = unitlist[i]
     end
+
+    --DeBUGGING----=========
+    for i=1, unitlistsize do
+        print(unitlist[i].moves[1])
+        print(unitlist[i].moves[1][1])
+        print(unitlist[i].moves[1][2])
+        print(unitlist[i].moves[2])
+
+        if unitlist[1].moves[1] == {0,0} then
+            print("Yes we can equate things this way")
+        end
+    end
+
+    
 
 end
 
@@ -363,16 +367,15 @@ function love.mousepressed(clickx, clicky, button)
                                 --Select that unit, acknowlege board click
                                 unitSelected = Board[x][y].unit
 
-                            elseif unitSelected ~= nil and unitSelected.nextposX == nil then
+                            elseif unitSelected ~= nil and unitSelected.moves[1][1] == 0 then
                                 --Deselect that unit, acknowlege second board click
                                 unitSelected = nil
 
-                           elseif unitSelected ~= nil and unitSelected.nextposX ~= nil then
+                           elseif unitSelected ~= nil and unitSelected.moves[1][1] == 0 then
                                 --If you have selected a unit, and it already has a move order, but you click that unit again.....
                                 if unitSelected.moveRange > 1 then
                                     --Edge case if you want to move a unit forward and back in one turn.
-                                    unitSelected.finalposX = x
-                                    unitSelected.finalposY = y
+                                    table.insert(unitSelected.moves, 1, {x,y})
                                     unitSelected = nil
                                 else if unitSelected.moveRange == 1 then
                                     --Needs to allow you to deselect general
@@ -380,29 +383,27 @@ function love.mousepressed(clickx, clicky, button)
                                 end
                             end
 
-                           elseif unitSelected ~= nil and unitSelected.finalposX ~= nil and unitSelected.moveRange > 1 then
+                           elseif unitSelected ~= nil and unitSelected.moves[1][1] ~= 0 and unitSelected.moveRange > 1 then
                                 --Allow re-casting of second move
-                            unitSelected.finalposX = x
-                            unitSelected.finalposY = y
+                            table.insert(unitSelected.moves, 1, {x,y})
                             unitSelected = nil
                             end
 
                         else
                            --if we click on a space that doesn't have a unit... 
-                                if unitSelected ~= nil and unitSelected.nextposX == x and unitSelected.nextposY == y then
+                                if unitSelected ~= nil and unitSelected.moves[1][1] == x and unitSelected.moves[1][2] == y then
                                     --if you click on the space that the unit is planning on moving to, deselect that unit
                                     unitSelected = nil
 
 
                                 
 
-                                elseif unitSelected ~= nil and inMoveRange(unitSelected, x, y) == true and unitSelected.nextposX == nil then
+                                elseif unitSelected ~= nil and inMoveRange(unitSelected, x, y) == true and unitSelected.moves[1][1] == 0 then
                                     --but a unit has been selected, and clicked square is in units movement range
                                     --Board[x][y].unit = unitSelected
                                     --Board[unitSelected.posX][unitSelected.posY].unit = nil
                                     --Board[unitSelected.posX][unitSelected.posY].clicked = false
-                                    unitSelected.nextposX = x
-                                    unitSelected.nextposY = y
+                                    table.insert(unitSelected.moves, 1, {x,y})
                                     unitSelected.pixstartX = calcStartPixX(unitSelected)
                                     unitSelected.pixstartY = calcStartPixY(unitSelected)
                                     --Board[unitSelected.nextposX][unitSelected.nextposY].unit = unitSelected
@@ -410,13 +411,12 @@ function love.mousepressed(clickx, clicky, button)
                                     unitSelected = nil
                                
 
-                                elseif unitSelected ~= nil and inNextMoveRange(unitSelected, x, y) == true and unitSelected.nextposX ~= nil and unitSelected.moveRange > 1 then
+                                elseif unitSelected ~= nil and inNextMoveRange(unitSelected, x, y) == true and unitSelected.moves[1][1] ~= 0 and unitSelected.moveRange > 1 then
                                     --but a unit has been selected, and clicked square is in units movement range
                                     --Board[x][y].unit = unitSelected
                                     --Board[unitSelected.posX][unitSelected.posY].unit = nil
                                     --Board[unitSelected.posX][unitSelected.posY].clicked = false
-                                    unitSelected.finalposX = x
-                                    unitSelected.finalposY = y
+                                    table.insert(unitSelected.moves, 2, {x,y})
                                     --unitSelected.pixstartX = calcStartPixX(unitSelected)
                                     --unitSelected.pixstartY = calcStartPixY(unitSelected)
                                     --Board[unitSelected.nextposX][unitSelected.nextposY].unit = unitSelected
@@ -453,12 +453,11 @@ function love.mousepressed(clickx, clicky, button)
     if clickx >= cancelButtonStartX and clickx <= cancelButtonStartX + cancelButtonSizeX and clicky >= cancelButtonStartY and clicky <= cancelButtonStartY + cancelButtonSizeY then
         print("You clicked the cancel button!!!!!!!!")
         if unitSelected ~= nil then
-            unitSelected.nextposX  = nil
-            unitSelected.nextposY = nil
-            unitSelected.finalposX = nil
-            unitSelected.finalposY = nil
-            unitSelected = nil
+            for i = 1, unitSelected.moveRange do
+                table.insert(unitSelected.moves, i, {0,0})
+            end
         end
+        unitSelected = nil
     end
 
 
@@ -542,20 +541,20 @@ end
 function drawArrows()
     --check if a unit has been given move orders
     for i=1, unitlistsize do
-        if unitlist[i].nextposX ~= nil then
+        if unitlist[i].moves[1][1] ~= 0 then
             -- Determine movement direction in radians. 
             local movedirection = 0
             --move left
-            if unitlist[i].nextposX < unitlist[i].posX then
+            if unitlist[i].moves[1][1] < unitlist[i].posX then
                 movedirection = 3.14159
                 love.graphics.draw(unitlist[i].arrow, (xMargin + ((unitlist[i].posX - 1)* BoardTileSize)) + (BoardTileSize/3), (yMargin + ((unitlist[i].posY - 1)* BoardTileSize) + (BoardTileSize/1.3)), movedirection, .8, .8) 
             --move right
-            elseif unitlist[i].nextposX > unitlist[i].posX then
+            elseif unitlist[i].moves[1][1] > unitlist[i].posX then
                 movedirection = 0
                 love.graphics.draw(unitlist[i].arrow, (xMargin + ((unitlist[i].posX - 1)* BoardTileSize)) + (BoardTileSize/2), (yMargin + ((unitlist[i].posY - 1)* BoardTileSize) + (BoardTileSize/5.5)), movedirection, .8, .8) 
 
             --move down
-            elseif unitlist[i].nextposY > unitlist[i].posY then
+            elseif unitlist[i].moves[1][2]> unitlist[i].posY then
                 movedirection = 1.57079
                 love.graphics.draw(unitlist[i].arrow, (xMargin + ((unitlist[i].posX - 1)* BoardTileSize)) + (BoardTileSize/1.3), (yMargin + ((unitlist[i].posY - 1)* BoardTileSize) + (BoardTileSize/2.2)), movedirection, .8, .8) 
 
@@ -570,25 +569,25 @@ function drawArrows()
     end
     --Draw arrows for second moves
     for i=1, unitlistsize do
-        if unitlist[i].finalposX ~= nil and unitlist[i].nextposX ~= nil then
+        if unitlist[i].moves[2][1] ~= 0 and unitlist[i].moves[1][1] ~= 0 then
             -- Determine movement direction in radians. 
             local movedirection = 0
             --move left
-            if unitlist[i].finalposX < unitlist[i].nextposX then
+            if unitlist[i].moves[2][1] < unitlist[i].moves[1][1] then
                 movedirection = 3.14159
-                love.graphics.draw(unitlist[i].arrow, (xMargin + ((unitlist[i].nextposX - 1)* BoardTileSize)) + (BoardTileSize/3), (yMargin + ((unitlist[i].nextposY - 1)* BoardTileSize) + (BoardTileSize/1.3)), movedirection, .8, .8) 
+                love.graphics.draw(unitlist[i].arrow, (xMargin + ((unitlist[i].moves[1][1] - 1)* BoardTileSize)) + (BoardTileSize/3), (yMargin + ((unitlist[i].moves[1][2] - 1)* BoardTileSize) + (BoardTileSize/1.3)), movedirection, .8, .8) 
             --move right
-            elseif unitlist[i].finalposX > unitlist[i].nextposX then
+            elseif unitlist[i].moves[2][1] > unitlist[i].moves[1][1] then
                 movedirection = 0
-                love.graphics.draw(unitlist[i].arrow, (xMargin + ((unitlist[i].nextposX - 1)* BoardTileSize)) + (BoardTileSize/2), (yMargin + ((unitlist[i].nextposY - 1)* BoardTileSize) + (BoardTileSize/5.5)), movedirection, .8, .8) 
+                love.graphics.draw(unitlist[i].arrow, (xMargin + ((unitlist[i].moves[1][1] - 1)* BoardTileSize)) + (BoardTileSize/2), (yMargin + ((unitlist[i].moves[1][2] - 1)* BoardTileSize) + (BoardTileSize/5.5)), movedirection, .8, .8) 
 
             --move down
-            elseif unitlist[i].finalposY > unitlist[i].nextposY then
+            elseif unitlist[i].moves[2][2] > unitlist[i].moves[1][2] then
                 movedirection = 1.57079
-                love.graphics.draw(unitlist[i].arrow, (xMargin + ((unitlist[i].nextposX - 1)* BoardTileSize)) + (BoardTileSize/1.3), (yMargin + ((unitlist[i].nextposY - 1)* BoardTileSize) + (BoardTileSize/2.2)), movedirection, .8, .8) 
+                love.graphics.draw(unitlist[i].arrow, (xMargin + ((unitlist[i].moves[1][1] - 1)* BoardTileSize)) + (BoardTileSize/1.3), (yMargin + ((unitlist[i].moves[1][2] - 1)* BoardTileSize) + (BoardTileSize/2.2)), movedirection, .8, .8) 
 
             else movedirection = 4.71238
-                love.graphics.draw(unitlist[i].arrow, (xMargin + ((unitlist[i].nextposX - 1)* BoardTileSize)) + (BoardTileSize/5), (yMargin + ((unitlist[i].nextposY - 1)* BoardTileSize) + (BoardTileSize/3.5)), movedirection, .8, .8) 
+                love.graphics.draw(unitlist[i].arrow, (xMargin + ((unitlist[i].moves[1][1] - 1)* BoardTileSize)) + (BoardTileSize/5), (yMargin + ((unitlist[i].moves[1][2] - 1)* BoardTileSize) + (BoardTileSize/3.5)), movedirection, .8, .8) 
 
             end
             
@@ -602,20 +601,20 @@ function calculateMoves()
 
     for h = 1, maxMoveRange do
         for i =1, unitlistsize do
-            if (unitlist[i].nextposX ~= nil and unitlist[i].nextposX ~= nil) and unitlist[i].isalive == true then
+            if (unitlist[i].moves[1][1] ~= 0) and unitlist[i].isalive == true then
                 --for all units, if that movement has a nextpos (ie, it was given a move order)
                 for j=1, unitlistsize do
                     --check for moveconflicts, and execute combat to resolve
                     if unitlist[i] ~= unitlist[j] and unitlist[j].isalive == true then
-                        if (unitlist[i].nextposX == unitlist[j].nextposX and unitlist[i].nextposY == unitlist[j].nextposY) or (unitlist[i].nextposX == unitlist[j].posX and unitlist[i].nextposY == unitlist[j].posY) then
+                        if (unitlist[i].moves[1][1] == unitlist[j].moves[1][1] and unitlist[i].moves[1][2] == unitlist[j].moves[1][2]) or (unitlist[i].moves[1][1] == unitlist[j].posX and unitlist[i].moves[1][2] == unitlist[j].posY) then
                             if unitlist[i].player == unitlist[j].player then
                                 --If units are on the same side, don't allow move to go through 
-                                unitlist[i].nextposX = unitlist[i].posX
-                                unitlist[i].nextposY = unitlist[i].posY
+                                unitlist[i].moves[1][1] = unitlist[i].posX
+                                unitlist[i].moves[1][2] = unitlist[i].posY
 
                             else 
                                 winner = unitCombat(unitlist[i], unitlist[j])
-                                Board[winner.nextposX][winner.nextposY].unit = winner
+                                Board[winner.moves[1][1]][winner.moves[1][2]].unit = winner
                                 print("ANd the winner isssss......")
                                 print(winner.name)
                             
@@ -641,22 +640,29 @@ function calculateMoves()
                     print(unitlist[i].posX)
                     print(unitlist[i].posY)
                     Board[unitlist[i].posX][unitlist[i].posY].unit = nil
-                    Board[unitlist[i].nextposX][unitlist[i].nextposY].unit = unitlist[i]
-                    unitlist[i].posX = unitlist[i].nextposX
-                    unitlist[i].posY = unitlist[i].nextposY
+                    Board[unitlist[i].moves[1][1]][unitlist[i].moves[1][2]].unit = unitlist[i]
+                    unitlist[i].posX = unitlist[i].moves[1][1]
+                    unitlist[i].posY = unitlist[i].moves[1][2]
 
                     --If unit has no other moves, set nextpos to zero
-                    if unitlist[i].finalposX == nil then
-                        unitlist[i].nextposX = nil
-                        unitlist[i].nextposY = nil
+                    if unitlist[i].moves[2][1] == 0 then
+                        unitlist[i].moves[1][1] = 0
+                        unitlist[i].moves[1][2] = 0
+                        --unitlist[i].nextposY = nil
 
                     --otherwise, queue up final moves to next moves
                     else
-                        unitlist[i].nextposX = unitlist[i].finalposX
-                        unitlist[i].nextposY = unitlist[i].finalposY
+                        --TESTINGtable.insert(unitlist[i].moves, 1, unitlist[i].moves[2])
+                        unitlist[i].moves[1][1] = unitlist[i].moves[2][1]
+                        unitlist[i].moves[1][2] = unitlist[i].moves[2][2]
 
-                        unitlist[i].finalposX = nil
-                        unitlist[i].finalposY = nil
+                        --unitlist[i].nextposX = unitlist[i].finalposX
+                        --unitlist[i].nextposY = unitlist[i].finalposY
+
+                        unitlist[i].moves[2][1] = 0
+                        unitlist[i].moves[2][2] = 0
+                        --unitlist[i].finalposX = nil
+                        --unitlist[i].finalposY = nil
                     end
                 end
             end
@@ -749,8 +755,7 @@ function removeCasualties(unit)
             unitlist[i].isalive = false
             unitlist[i].posX = nil
             unitlist[i].posY = nil
-            unitlist[i].nextposX = nil
-            unitlist[i].nextposY = nil
+            unitlist[i].moves = {{0,0}, {0,0}, {0,0} }
         end
     end
 
@@ -768,6 +773,7 @@ function checkGenerals()
     end
 end
 
+--[[
 function drawMoveOptions()
     --Check to see if square has been clicked to draw movement options
         for x = 1, BoardWidth do
@@ -801,29 +807,30 @@ function drawMoveOptions()
             end
         end
 end
+]]
 
 function  drawNextMoveOptions()
-    if unitSelected ~= nil and unitSelected.nextposX ~= nil and unitSelected.moveRange > 1 then
+    if unitSelected ~= nil and unitSelected.moves[1][1] ~= 0 and unitSelected.moveRange > 1 then
         --Highlight space unit's first move is as yellow
         love.graphics.setColor(0.98,0.854, 0.368, 0.5)
-        love.graphics.rectangle('fill', Board[unitSelected.nextposX][unitSelected.nextposY].startx, Board[unitSelected.nextposX][unitSelected.nextposY].starty, BoardTileSize, BoardTileSize)
+        love.graphics.rectangle('fill', Board[unitSelected.moves[1][1]][unitSelected.moves[1][2]].startx, Board[unitSelected.moves[1][1]][unitSelected.moves[1][1]].starty, BoardTileSize, BoardTileSize)
         --Set potential moves as green
         love.graphics.setColor(0,1,0, 0.5)
         --Move Up
         if unitSelected.posY > 1 then
-            love.graphics.rectangle('fill', Board[unitSelected.nextposX][unitSelected.nextposY - 1].startx, Board[unitSelected.nextposX][unitSelected.nextposY - 1].starty, BoardTileSize, BoardTileSize)
+            love.graphics.rectangle('fill', Board[unitSelected.moves[1][1]][unitSelected.moves[1][2] - 1].startx, Board[unitSelected.moves[1][1]][unitSelected.moves[1][2] - 1].starty, BoardTileSize, BoardTileSize)
         end
         --Move Down
         if unitSelected.posY < BoardHeight then
-            love.graphics.rectangle('fill',Board[unitSelected.nextposX][unitSelected.nextposY + 1].startx, Board[unitSelected.nextposX][unitSelected.nextposY + 1].starty, BoardTileSize, BoardTileSize)
+            love.graphics.rectangle('fill',Board[unitSelected.moves[1][1]][unitSelected.moves[1][2] + 1].startx, Board[unitSelected.moves[1][1]][unitSelected.moves[1][2] + 1].starty, BoardTileSize, BoardTileSize)
         end
         --Move Left
         if unitSelected.posX > 1 then
-            love.graphics.rectangle('fill',Board[unitSelected.nextposX - 1][unitSelected.nextposY].startx, Board[unitSelected.nextposX - 1][unitSelected.nextposY].starty, BoardTileSize, BoardTileSize)
+            love.graphics.rectangle('fill',Board[unitSelected.moves[1][1] - 1][unitSelected.moves[1][2]].startx, Board[unitSelected.moves[1][1] - 1][unitSelected.moves[1][2]].starty, BoardTileSize, BoardTileSize)
         end
         --Move Right
         if unitSelected.posX < BoardWidth then
-            love.graphics.rectangle('fill', Board[unitSelected.nextposX + 1][unitSelected.nextposY].startx, Board[unitSelected.nextposX + 1][unitSelected.nextposY].starty, BoardTileSize, BoardTileSize)
+            love.graphics.rectangle('fill', Board[unitSelected.moves[1][1] + 1][unitSelected.moves[1][2]].startx, Board[unitSelected.moves[1][1] + 1][unitSelected.moves[1][2]].starty, BoardTileSize, BoardTileSize)
         end
 
         love.graphics.setColor(1, 1, 1)
@@ -833,7 +840,7 @@ end
 
 
 function drawMoveOptions1()
-    if unitSelected ~= nil and (unitSelected.nextposX == nil or unitSelected.moveRange == 1) then
+    if unitSelected ~= nil and (unitSelected.moves[1][1] == 0 or unitSelected.moveRange == 1) then
          --Highlight unit as yellow
          love.graphics.setColor(0.98,0.854, 0.368, 0.5)
          love.graphics.rectangle('fill', Board[unitSelected.posX][unitSelected.posY].startx, Board[unitSelected.posX][unitSelected.posY].starty, BoardTileSize, BoardTileSize)
@@ -914,22 +921,26 @@ function inMoveRange(unit, x, y)
         if x == unit.posX + 1 or x == unit.posX - 1 then
         return true
         end
-    else return false
+    else
+        print("Tile not in move range")
+        return false
     end
 end
 
 function inNextMoveRange(unit, x, y)
     --Given a unit and a coordinate, see if that coordinate is in the units movemnt range
-        if x == unit.nextposX then
-           if y== unit.nextposY + 1 or y == unit.nextposY - 1 then
+        if x == unit.moves[1][1] then
+           if y== unit.moves[1][2] + 1 or y == unit.moves[1][2] - 1 then
            return true
            end
         
-        elseif y == unit.nextposY then
-            if x == unit.nextposX + 1 or x == unit.nextposX - 1 then
+        elseif y == unit.moves[1][2] then
+            if x == unit.moves[1][1] + 1 or x == unit.moves[1][1] - 1 then
             return true
             end
-        else return false
+        else 
+            print("Tile not in next move range")
+            return false
         end
     end
 
